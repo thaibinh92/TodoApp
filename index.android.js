@@ -11,7 +11,9 @@ import {
     Text,
     View,
     TouchableOpacity,
-    ListView
+    ListView,
+    Alert,
+    TextInput
 } from 'react-native';
 var Firebase = require('firebase');
 
@@ -23,19 +25,29 @@ export default class TodoApp extends Component {
         this.state = {
             ds: new ListView.DataSource({
                 rowHasChanged: (r1, r2) => r1 !== r2
-            })
-        }
+            }),
+            newTodo:''
+        };
         this.items = [];
-        this.itemsRef.on('child_added', (dataSnapshot) => {
+
+    }
+    componentDidMount(){
+        this.itemsRef.on('child_added',(dataSnapshot)=>{
             this.items.push({
-                id: dataSnapshot.key(),
-                value: dataSnapshot.val().IOS
-            })
+                id:dataSnapshot.key(),
+                value:dataSnapshot.val().todo
+            });
+
             this.setState({
                 ds: this.state.ds.cloneWithRows(this.items)
-            })
+            });
+        });
+        this.itemsRef.on('child_removed',(dataSnapshot)=>{
+            this.items = this.items.filter((x) => x.id !== dataSnapshot.key());
+            this.setState({
+                ds: this.state.ds.cloneWithRows(this.items)
+            });
         })
-
     }
 
     saveSet() {
@@ -45,10 +57,34 @@ export default class TodoApp extends Component {
     }
 
     savePush() {
-        this.itemsRef.child('Trung Tam Dao Tao Thai Binh').push({
-            PUSH: 'Fire trong react native',
+        if(this.state.newTodo!==''){
+            this.itemsRef.push({
+                todo:this.state.newTodo
+            });
+            this.setState({
+                newTodo:''
+            });
+        }else{
+            alert('Hay nhap todo');
+        }
 
-        });
+    }
+    removeTodo(item){
+        Alert.alert(
+            'Remove',
+            'Are you sure?',
+            [
+                {
+                    'text':'OK',
+                    onPress:()=>this.itemsRef.child(item.id).remove()
+                },
+                {
+                    'text':'Cancel',
+                    onPress:()=>console.log('Cancel')
+                }
+            ]
+        )
+
     }
 
     addData() {
@@ -59,9 +95,9 @@ export default class TodoApp extends Component {
 
     view_table(row) {
         return (
-            <TouchableOpacity>
-                <View>
-                    <View style={styles.row} >
+            <TouchableOpacity onPress={()=>this.removeTodo(row)}>
+                <View style={styles.wrapper} >
+                    <View style={styles.rows} >
                         <Text>
                             {row.value}
                         </Text>
@@ -86,9 +122,13 @@ export default class TodoApp extends Component {
                 </View>
 
                 <View style={styles.inputContainer} >
-                    <TextInput style={styles.input} />
-                    <TouchableOpacity>
-                        <Text style={styles.btnText} >Add</Text>
+                    <TextInput style={styles.input}
+                               onChangeText={(text)=>this.setState({newTodo:text})}
+                               underlineColorAndroid='transparent'
+                               value={this.state.newTodo}
+                    />
+                    <TouchableOpacity style={styles.btn} onPress={()=>this.savePush()} >
+                        <Text style={styles.btnText}>Add</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -105,9 +145,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F5FCFF',
     },
+    wrapper:{
+        marginHorizontal:10
+    },
     titleView:{
         backgroundColor:"#2ca8e2",
-        paddingTop:30,
+        paddingTop:10,
         paddingBottom:10,
         flexDirection:'row'
     },
@@ -123,7 +166,7 @@ const styles = StyleSheet.create({
         padding:10,
         flexDirection:'row'
     },
-    row:{
+    rows:{
         flexDirection:'row',
         padding:12,
         height:44
@@ -135,19 +178,19 @@ const styles = StyleSheet.create({
     todoText:{
         flex:1
     },
-    button:{
+    btn:{
         height:36,
         flex:2,
         flexDirection:'row',
         backgroundColor:'#2f9beb',
         justifyContent:'center',
-        color:'#ffffff',
+        // color:'#ffffff',
         borderRadius:4
     },
     btnText:{
         fontSize:18,
         color:'#fff',
-        marginTop:6
+        marginTop:6,
     },
     input:{
         height:36,
@@ -156,7 +199,7 @@ const styles = StyleSheet.create({
         flex:4,
         fontSize:18,
         borderWidth:1,
-        borderColor:'#2ca8e2',
+        // borderColor:'#2ca8e2',
         borderRadius:4,
         color:'#2ca8e2'
     }
